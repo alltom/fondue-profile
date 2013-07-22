@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+
+/*
+ * Copyright (c) 2012 Massachusetts Institute of Technology, Adobe Systems
+ * Incorporated, and other contributors. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ */
+
+var fondueProfile = require('../fondue-profile');
+var path = require('path');
+
+/*
+Ideally, you could replace 'node' with 'fondue-profile' in any script and have
+it work the same way (except with fondue instrumentation, of course).
+
+Toward this end,
+  1) Argument names begin with --fondue-profile so that it's unlikely any other program
+     will also use them.
+  2) Any flags fondue-profile consumes are removed from process.argv before the
+     user's script is invoked.
+*/
+
+function parse(argv) {
+	var options = {
+		argv: argv,
+		scriptPath: undefined,
+		noisy: 0,
+		include_modules: false,
+	};
+
+	options.argv = options.argv.filter(function (arg) {
+		var m;
+		if (arg === '--fondue-profile-verbose') {
+			options.noisy = 1;
+			return false;
+		}
+		if (m = /^--fondue-profile-exclude=(.+)$/.exec(arg)) {
+			options.exclude || (options.exclude = []);
+			options.exclude.push(path.resolve(process.cwd(), m[1]));
+			return false;
+		}
+		if (arg === '--fondue-profile-include-modules') {
+			options.include_modules = true;
+			return false;
+		}
+		if (m = /^--fondue-profile-max-invocations-per-tick=([0-9]+)$/.exec(arg)) {
+			options.maxInvocationsPerTick = parseInt(m[1]);
+			return false;
+		}
+		return true;
+	});
+
+	if (options.argv[2]) {
+		options.scriptPath = path.resolve(process.cwd(), options.argv[2]);
+		options.argv.splice(1, 2, options.scriptPath); // replace path to fondue-profile with the resolved script path
+	}
+
+	return options;
+}
+
+var opt = parse(process.argv);
+if (opt.scriptPath) {
+	process.argv = opt.argv;
+	fondueProfile.setLogLevel(opt.noisy);
+	fondueProfile.beginInstrumentation({
+		include_modules: opt.include_modules,
+		exclude: opt.exclude,
+		maxInvocationsPerTick: opt.maxInvocationsPerTick,
+	});
+	fondueProfile.launch(opt.scriptPath);
+} else {
+	console.log('usage: fondue-profile [--fondue-profile-verbose] [--fondue-profile-include-modules] [--fondue-profile-exclude=glob] [--fondue-profile-max-invocations-per-tick=4096] [file.js] [args...]');
+}

@@ -1,0 +1,26 @@
+{
+	"name" : "fondue-profile",
+	"description" : "instrumenting profiler based on fondue",
+	"license" : "MIT",
+	"author" : "Tom Lieber <tom@alltom.com>",
+	"version" : "0.0.1",
+	"main" : "./index.js",
+	"bin" : {
+		"fondue-profile" : "./bin/fondue-profile"
+	},
+	"repository" : {
+		"type" : "git",
+		"url" : "https://github.com/alltom/fondue-profile.git"
+	},
+	"dependencies" : {
+		"fondue" : "0.4.x",
+		"minimatch" : "0.2.x"
+	},
+	"keywords" : [
+		"source",
+		"trace",
+		"instrumentation",
+		"profiler",
+		"performance"
+	]
+}
